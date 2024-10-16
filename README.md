@@ -1,6 +1,5 @@
-Pygame-Checkers
-===============
+Ai - checkers
 
-GitHub repository for an individual project in Python for Programming Workshop at Marlboro College. The goal was to create a fully functional checkers engine for two players.
+Boi we doin the Ai for checkers
 
 User should install pygame 1.9.2 release for required libraries. 

@@ -128,11 +128,13 @@ class Game:
 		legal_moves = [[(ai_position,legal_move) for legal_move in self.board.legal_moves(ai_position, self.hop)] for ai_position in ai_positions]
 		legal_moves = [moves for moves in legal_moves if moves != []]
 		print(legal_moves)
-		if(len(legal_moves) == 0): self.end_turn()
+		if(len(legal_moves) == 0): 
+			self.end_turn()
+			return 
 		random_piece = random.choice(legal_moves)
 		position, move = random.choice(random_piece)
-		self.selected_piece = position;
-		self.mouse_pos = move;
+		self.selected_piece = position
+		self.mouse_pos = move
 		if(self.hop == False):
 			self.board.move_piece(self.selected_piece, self.mouse_pos)
 						

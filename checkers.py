@@ -36,6 +36,7 @@ Funcitonalities include:
 Everest Witman - May 2014 - Marlboro College - Programming Workshop 
 """
 
+import random
 import pygame, sys
 from pygame.locals import *
 
@@ -44,8 +45,8 @@ pygame.font.init()
 ##COLORS##
 #             R    G    B 
 WHITE    = (255, 255, 255)
-BLUE     = (  0,   0, 255)
-RED      = (255,   0,   0)
+PLAYER     = (  0,   0, 255)
+AI      = (255,   0,   0)
 BLACK    = (  0,   0,   0)
 GOLD     = (255, 215,   0)
 HIGH     = (160, 190, 255)
@@ -65,7 +66,7 @@ class Game:
 		self.graphics = Graphics()
 		self.board = Board()
 		
-		self.turn = BLUE
+		self.turn = PLAYER
 		self.selected_piece = None # a board location. 
 		self.hop = False
 		self.selected_legal_moves = []
@@ -79,44 +80,80 @@ class Game:
 		The event loop. This is where events are triggered 
 		(like a mouse click) and then effect the game state.
 		"""
-		self.mouse_pos = self.graphics.board_coords(pygame.mouse.get_pos()) # what square is the mouse in?
-		if self.selected_piece != None:
-			self.selected_legal_moves = self.board.legal_moves(self.selected_piece, self.hop)
+		if(self.turn == AI):
+			self.play_AI_move()
+		
+		else:
+			self.mouse_pos = self.graphics.board_coords(pygame.mouse.get_pos()) # what square is the mouse in?
+			if self.selected_piece != None:
+				self.selected_legal_moves = self.board.legal_moves(self.selected_piece, self.hop)
 
-		for event in pygame.event.get():
+			for event in pygame.event.get():
 
-			if event.type == QUIT:
-				self.terminate_game()
+				if event.type == QUIT:
+					self.terminate_game()
 
-			if event.type == MOUSEBUTTONDOWN:
-				if self.hop == False:
-					if self.board.location(self.mouse_pos).occupant != None and self.board.location(self.mouse_pos).occupant.color == self.turn:
-						self.selected_piece = self.mouse_pos
-
-					elif self.selected_piece != None and self.mouse_pos in self.board.legal_moves(self.selected_piece):
-
-						self.board.move_piece(self.selected_piece, self.mouse_pos)
-					
-						if self.mouse_pos not in self.board.adjacent(self.selected_piece):
-							self.board.remove_piece(((self.selected_piece[0] + self.mouse_pos[0]) >> 1, (self.selected_piece[1] + self.mouse_pos[1]) >> 1))
-						
-							self.hop = True
+				if event.type == MOUSEBUTTONDOWN:
+					if self.hop == False:
+						if self.board.location(self.mouse_pos).occupant != None and self.board.location(self.mouse_pos).occupant.color == self.turn:
 							self.selected_piece = self.mouse_pos
 
+						elif self.selected_piece != None and self.mouse_pos in self.board.legal_moves(self.selected_piece):
+
+							self.board.move_piece(self.selected_piece, self.mouse_pos)
+						
+							if self.mouse_pos not in self.board.adjacent(self.selected_piece):
+								self.board.remove_piece(((self.selected_piece[0] + self.mouse_pos[0]) >> 1, (self.selected_piece[1] + self.mouse_pos[1]) >> 1))
+							
+								self.hop = True
+								self.selected_piece = self.mouse_pos
+
+							else:
+								self.end_turn()
+
+					if self.hop == True:					
+						if self.selected_piece != None and self.mouse_pos in self.board.legal_moves(self.selected_piece, self.hop):
+							self.board.move_piece(self.selected_piece, self.mouse_pos)
+							self.board.remove_piece(((self.selected_piece[0] + self.mouse_pos[0]) >> 1, (self.selected_piece[1] + self.mouse_pos[1]) >> 1))
+
+						if self.board.legal_moves(self.mouse_pos, self.hop) == []:
+								self.end_turn()
+
 						else:
-							self.end_turn()
+							self.selected_piece = self.mouse_pos
+	
 
-				if self.hop == True:					
-					if self.selected_piece != None and self.mouse_pos in self.board.legal_moves(self.selected_piece, self.hop):
-						self.board.move_piece(self.selected_piece, self.mouse_pos)
-						self.board.remove_piece(((self.selected_piece[0] + self.mouse_pos[0]) >> 1, (self.selected_piece[1] + self.mouse_pos[1]) >> 1))
+	def play_AI_move(self):
+		ai_positions = self.board.get_AI_positions();
+		legal_moves = [[(ai_position,legal_move) for legal_move in self.board.legal_moves(ai_position, self.hop)] for ai_position in ai_positions]
+		legal_moves = [moves for moves in legal_moves if moves != []]
+		print(legal_moves)
+		if(len(legal_moves) == 0): self.end_turn()
+		random_piece = random.choice(legal_moves)
+		position, move = random.choice(random_piece)
+		self.selected_piece = position;
+		self.mouse_pos = move;
+		if(self.hop == False):
+			self.board.move_piece(self.selected_piece, self.mouse_pos)
+						
+			if self.mouse_pos not in self.board.adjacent(self.selected_piece):
+				self.board.remove_piece(((self.selected_piece[0] + self.mouse_pos[0]) >> 1, (self.selected_piece[1] + self.mouse_pos[1]) >> 1))
+							
+				self.hop = True
+				self.selected_piece = self.mouse_pos
+    
+			else:
+				self.end_turn()
+		else:
+			self.board.move_piece(self.selected_piece, self.mouse_pos)
+			self.board.remove_piece(((self.selected_piece[0] + self.mouse_pos[0]) >> 1, (self.selected_piece[1] + self.mouse_pos[1]) >> 1))
 
-					if self.board.legal_moves(self.mouse_pos, self.hop) == []:
-							self.end_turn()
+			if self.board.legal_moves(self.mouse_pos, self.hop) == []:
+				self.end_turn()
 
-					else:
-						self.selected_piece = self.mouse_pos
-
+			else:
+				self.selected_piece = self.mouse_pos
+			
 
 	def update(self):
 		"""Calls on the graphics class to update the game display."""
@@ -140,20 +177,20 @@ class Game:
 		End the turn. Switches the current player. 
 		end_turn() also checks for and game and resets a lot of class attributes.
 		"""
-		if self.turn == BLUE:
-			self.turn = RED
+		if self.turn == PLAYER:
+			self.turn = AI
 		else:
-			self.turn = BLUE
+			self.turn = PLAYER
 
 		self.selected_piece = None
 		self.selected_legal_moves = []
 		self.hop = False
 
 		if self.check_for_endgame():
-			if self.turn == BLUE:
-				self.graphics.draw_message("RED WINS!")
+			if self.turn == PLAYER:
+				self.graphics.draw_message("AI WINS!")
 			else:
-				self.graphics.draw_message("BLUE WINS!")
+				self.graphics.draw_message("PLAYER WINS!")
 
 	def check_for_endgame(self):
 		"""
@@ -291,10 +328,13 @@ class Board:
 		for x in range(8):
 			for y in range(3):
 				if matrix[x][y].color == BLACK:
-					matrix[x][y].occupant = Piece(RED)
+					matrix[x][y].occupant = Piece(AI)
+
+
+
 			for y in range(5, 8):
 				if matrix[x][y].color == BLACK:
-					matrix[x][y].occupant = Piece(BLUE)
+					matrix[x][y].occupant = Piece(PLAYER)
 
 		return matrix
 
@@ -377,10 +417,10 @@ class Board:
 		y = pixel[1]
 		if self.matrix[x][y].occupant != None:
 			
-			if self.matrix[x][y].occupant.king == False and self.matrix[x][y].occupant.color == BLUE:
+			if self.matrix[x][y].occupant.king == False and self.matrix[x][y].occupant.color == PLAYER:
 				blind_legal_moves = [self.rel(NORTHWEST, (x,y)), self.rel(NORTHEAST, (x,y))]
 				
-			elif self.matrix[x][y].occupant.king == False and self.matrix[x][y].occupant.color == RED:
+			elif self.matrix[x][y].occupant.king == False and self.matrix[x][y].occupant.color == AI:
 				blind_legal_moves = [self.rel(SOUTHWEST, (x,y)), self.rel(SOUTHEAST, (x,y))]
 
 			else:
@@ -500,8 +540,18 @@ class Board:
 		x = pixel[0]
 		y = pixel[1]
 		if self.location((x,y)).occupant != None:
-			if (self.location((x,y)).occupant.color == BLUE and y == 0) or (self.location((x,y)).occupant.color == RED and y == 7):
+			if (self.location((x,y)).occupant.color == PLAYER and y == 0) or (self.location((x,y)).occupant.color == AI and y == 7):
 				self.location((x,y)).occupant.king = True 
+	
+	def get_AI_positions(self):
+		ai_positions = []
+		for i in range(8):
+			for j in range(8):
+				occupant = self.location((i,j)).occupant
+				if(occupant and occupant.color == AI): ai_positions.append((i,j))
+				
+		return ai_positions
+      
 
 class Piece:
 	def __init__(self, color, king = False):
